@@ -5,6 +5,14 @@ from sklearn.feature_selection import VarianceThreshold
 from sklearn.ensemble import AdaBoostRegressor
 from sklearn.ensemble import BaggingRegressor
 from xgboost import XGBRegressor
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import f1_score
+from sklearn.metrics import recall_score
+from sklearn.metrics import precision_score
+
+
 
 
 #Loading the Data
@@ -73,4 +81,40 @@ ada_reg1 = AdaBoostRegressor(base_estimator=reg_xgb1, random_state=0)
 #AdaBoost Regression
 model_bulk = ada_reg.fit(df_shear_train,Y_bulk_train)
 model_shear = ada_reg1.fit(df_shear_train,Y_shear_train)
+
+#Stability Classification
+df_energy = pd.read_csv("stability_data.csv")
+df_energy = df_energy.dropna()
+filename =  df_energy['mat']
+
+#designating the data
+Y_energy = df_energy['if']
+X_energy = df_energy.drop(['delta_e','filename','mat','if','stability','mili'],axis='columns')
+X_energy = X_energy[af_both2.columns]
+X_energy.columns = af_both2.columns
+
+#scaling the data
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler()
+X_scaled_energy = scaler.fit_transform(X_energy)
+X_sca_en = pd.DataFrame(X_scaled_energy)
+X_sca_en.columns = af_both2.columns
+X_sca_en = X_sca_en[af_both2.columns]
+
+#balancing the data
+from imblearn.under_sampling import InstanceHardnessThreshold
+rus = InstanceHardnessThreshold(cv =5, random_state=7)
+X_res, y_res = rus.fit_resample(X_sca_en, Y_energy)
+
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X_res,y_res,  test_size=0.2, random_state=485)
+
+
+#Training & Testing
+from sklearn.ensemble import AdaBoostClassifier
+ada_reg = AdaBoostClassifier(random_state=0)
+ada_reg.fit(X_train,y_train)
+
 
